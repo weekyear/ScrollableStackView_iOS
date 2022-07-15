@@ -13,6 +13,8 @@ class LayoutCalculator {
     var drawWidth: CGFloat = 100.0
     let xOfFirstLine: Float = 20.0
     let paddingRight: Float = 20.0
+    let maxLineGapSize: Float = 20.0
+    let minLineGapSize: Float = 2.0
     
     var _lineGapSize: Float = 20.0
     var lineGapSize: Float {
@@ -34,12 +36,8 @@ class LayoutCalculator {
             return _slideWidth
         }
     }
-    
-    private let minLineGapSize = 2.0
-    private let maxLineGapSize = 20.0
     var totalStackNum = 3
     private let defalutSlideNum = 3
-    
     
     var graphPointsList: Array<Array<GraphPoint>> = []
     

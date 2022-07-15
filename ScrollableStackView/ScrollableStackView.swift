@@ -13,14 +13,12 @@ class ScrollableStackView: UIScrollView, UIScrollViewDelegate {
     
     // MARK: PinchGesture
     private var targetIndex: Int = 0
-    private var lineGapBegan: CGFloat = 0
     private var prevXOfTargetIndex: Float = 0.0
     private var isPinchZoom: Bool = false
+    private var lineGapBegan: CGFloat = 0
     
     // stack안에 들어갈 Slide 수
     private let stackSlideNum = 3
-    
-    private var curScale = 1.0
     
     private var slideViews: [SlideView] {
         get {
@@ -108,13 +106,13 @@ extension ScrollableStackView {
     }
     
     private func moveLeftSlideToRight(_ scrollView: UIScrollView) {
-        slideViews.last?.initSlideValue(slideNum: (slideViews.last?.slideNum ?? 0) - stackSlideNum)
+        slideViews.last?.initSlideNum(slideNum: (slideViews.last?.slideNum ?? 0) - stackSlideNum)
         changeStackPosition(from: slideViews.endIndex - 1, to: 0)
         scrollView.contentOffset = CGPoint(x: max(scrollView.contentOffset.x + slideViews[0].frame.width, 0), y: 0)
     }
     
     private func moveRightSlideToLeft(_ scrollView: UIScrollView) {
-        slideViews.first?.initSlideValue(slideNum: (slideViews.first?.slideNum ?? 0) + stackSlideNum)
+        slideViews.first?.initSlideNum(slideNum: (slideViews.first?.slideNum ?? 0) + stackSlideNum)
         changeStackPosition(from: 0, to: slideViews.endIndex - 1)
         scrollView.contentOffset = CGPoint(x: scrollView.contentOffset.x - slideViews[0].frame.width, y: 0)
     }
@@ -124,8 +122,8 @@ extension ScrollableStackView {
         stackView.removeArrangedSubview(curSlideView)
         stackView.insertArrangedSubview(curSlideView, at: to)
         stackView.setNeedsLayout()
-//        curSlideView.setNeedsDisplay()
-        curSlideView.render()
+        curSlideView.setNeedsDisplay()
+//        curSlideView.render()
     }
 }
 
@@ -137,27 +135,28 @@ extension ScrollableStackView {
             let startX = slideViews[0].startX
             targetIndex = calculator.findIndexByX(clickX: Float(startX + pinchPoint.x))
             prevXOfTargetIndex = calculator.findXByIndex(index: targetIndex) - Float(startX) - Float(contentOffset.x)
+            lineGapBegan = CGFloat(calculator.lineGapSize)
             isPinchZoom = true
             break
         case .changed:
-            let isZoomOut = curScale - sender.scale > 0.05
-            let isZoomIn = curScale - sender.scale < -0.05
-            let maxLineGapSize: Float = 20.0
-            let minLineGapSize: Float = 2.0
+            let newLineGap = lineGapBegan * sender.scale
             
-            if ((isZoomIn && calculator.lineGapSize <= maxLineGapSize) || (isZoomOut && calculator.lineGapSize > minLineGapSize)) {
-                let scaleWeight = 1.0
-                let signZoom = isZoomIn ? 1.0 : -1.0
-                curScale += scaleWeight * signZoom
-                calculator.lineGapSize -= Float(curScale)
-                calculator.lineGapSize = max(minLineGapSize, calculator.lineGapSize)
-                calculator.lineGapSize = min(maxLineGapSize, calculator.lineGapSize)
+            let isZoomOut = CGFloat(calculator.lineGapSize) - newLineGap > 0.05
+            let isZoomIn = newLineGap - CGFloat(calculator.lineGapSize) > 0.05
+            
+            
+            if ((isZoomIn && calculator.lineGapSize <= calculator.maxLineGapSize) || (isZoomOut && calculator.lineGapSize > calculator.minLineGapSize)) {
+                calculator.lineGapSize = Float(newLineGap)
+                calculator.lineGapSize = max(calculator.minLineGapSize, calculator.lineGapSize)
+                calculator.lineGapSize = min(calculator.maxLineGapSize, calculator.lineGapSize)
                 calculator.calculateForRedraw()
                 
-                reinitArrangedSubView(xOfTargetIndex: CGFloat(calculator.findXByIndex(index: targetIndex)))
+                slideViews.forEach { curSlideView in
+                    reinitArrangedSubView(xOfTargetIndex: CGFloat(calculator.findXByIndex(index: targetIndex)))
+                    curSlideView.setNeedsDisplay()
+                }
                 setOffsetXOfScroll()
             }
-            
             break
         case .ended:
             scroll(self)
@@ -180,8 +179,6 @@ extension ScrollableStackView {
         let colors: [UIColor] = [.yellow, .green, .cyan]
         let targetSlideIndex = Int(xOfTargetIndex / calculator.slideWidth)
         
-        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        
         colors.enumerated().forEach { (index, color) in
             var slideNum = targetSlideIndex + index
             
@@ -191,8 +188,8 @@ extension ScrollableStackView {
                 slideNum -= 1
             }
             
-            let subView = SlideView(slideNum: slideNum, color: color, calculator: calculator)
-            stackView.addArrangedSubview(subView)
+            let subView = slideViews[index]
+            subView.initSlideValue(slideNum: slideNum, color: color, calculator: calculator)
             subView.setConstraint(self)
         }
     }

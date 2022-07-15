@@ -16,7 +16,7 @@ class SlideView: UIView {
     var finalIndex: Int = 0
     private var bezierPath: UIBezierPath? = nil
     
-    private var pathLayer: PathLayer?
+//    private var pathLayer: PathLayer?
     
     var calculator: LayoutCalculator!
     
@@ -31,32 +31,36 @@ class SlideView: UIView {
     init(slideNum: Int, color: UIColor, calculator: LayoutCalculator) {
         super.init(frame: .zero)
         
-        self.backgroundColor = color
-        self.calculator = calculator
+        initSlideValue(slideNum: slideNum, color: color, calculator: calculator)
     
-        initSlideValue(slideNum: slideNum)
         
-        let pathLayer = PathLayer(slideView: self)
-        pathLayer.contentsScale = UIScreen.main.scale
-        pathLayer.drawsAsynchronously = true
-        pathLayer.setNeedsDisplay()
+//        let pathLayer = PathLayer(slideView: self)
+//        pathLayer.contentsScale = UIScreen.main.scale
+//        pathLayer.drawsAsynchronously = true
+//        pathLayer.setNeedsDisplay()
         
-        self.layer.addSublayer(pathLayer)
-        self.pathLayer = pathLayer
+//        self.layer.addSublayer(pathLayer)
+//        self.pathLayer = pathLayer
     }
+    
     
     override func layoutSublayers(of layer: CALayer) {
-        self.pathLayer?.frame = self.bounds
+//        self.pathLayer?.frame = self.bounds
     }
     
-    func initSlideValue(slideNum: Int) {
+    func initSlideValue(slideNum: Int, color: UIColor, calculator: LayoutCalculator) {
+        self.backgroundColor = color
+        self.calculator = calculator
+        
+        initSlideNum(slideNum: slideNum)
+    }
+    
+    func initSlideNum(slideNum: Int) {
         self.slideNum = slideNum
         startX = CGFloat(slideNum) * calculator.slideWidth
         endX = CGFloat((slideNum + 1)) * calculator.slideWidth
         
-        if calculator != nil {
-            setFisrtAndFinalIndex()
-        }
+        setFisrtAndFinalIndex()
         label.text = String(slideNum)
     }
     
@@ -92,7 +96,7 @@ class SlideView: UIView {
     
     func render() {
 //        self.pathLayer?.removeFromSuperlayer()
-//
+
 //        let pathLayer = PathLayer(slideView: self)
 //        pathLayer.contentsScale = UIScreen.main.scale
 //        pathLayer.drawsAsynchronously = true
