@@ -9,14 +9,15 @@ import Foundation
 import UIKit
 
 class LayoutCalculator {
-    let dataNum = 3000
+    let dataNum = 30
     var drawWidth: CGFloat = 100.0
-    let xOfFirstLine: Float = 20.0
-    let paddingRight: Float = 20.0
+    var drawHeight: CGFloat = 100.0
+    let paddingLeft: Float = 0.0
+    let paddingRight: Float = 0.0
     let maxLineGapSize: Float = 20.0
     let minLineGapSize: Float = 2.0
     
-    var _lineGapSize: Float = 20.0
+    var _lineGapSize: Float = 10.0
     var lineGapSize: Float {
         get {
             return _lineGapSize
@@ -33,7 +34,7 @@ class LayoutCalculator {
             if (_slideWidth == 0.0) {
                 _slideWidth = max(drawWidth, UIScreen.main.bounds.width) / CGFloat(totalStackNum)
             }
-            return _slideWidth
+            return max(drawWidth, UIScreen.main.bounds.width) / CGFloat(totalStackNum)
         }
     }
     var totalStackNum = 3
@@ -48,7 +49,7 @@ class LayoutCalculator {
     }
     
     private func initDrawWidth() {
-        drawWidth = CGFloat(xOfFirstLine + lineGapSize * Float((dataNum - 1)) + paddingRight)
+        drawWidth = CGFloat(paddingLeft + lineGapSize * Float((dataNum - 1)) + paddingRight)
     }
     
     private func initTotalScreenNum() {
@@ -63,6 +64,7 @@ class LayoutCalculator {
     
     func calculateForRedraw() {
         initDrawWidth()
+        
         initTotalScreenNum()
         updateGraphPointsList()
     }
@@ -101,7 +103,13 @@ class LayoutCalculator {
     }
     
     func findXByIndex(index: Int) -> Float {
-        return xOfFirstLine + lineGapSize * Float(index)
+        return paddingLeft + lineGapSize * Float(index)
+    }
+    
+    func setNewLineGapSize(_ newLineGap: CGFloat) {
+        lineGapSize = Float(newLineGap)
+        lineGapSize = max(minLineGapSize, lineGapSize)
+        lineGapSize = min(maxLineGapSize, lineGapSize)
     }
     
     func findIndexByX(clickX: Float) -> Int {

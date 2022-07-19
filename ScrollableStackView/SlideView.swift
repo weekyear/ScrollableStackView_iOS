@@ -20,6 +20,9 @@ class SlideView: UIView {
     
     var calculator: LayoutCalculator!
     
+    private var widthConstraint: NSLayoutConstraint!
+    private var heightConstraint: NSLayoutConstraint!
+    
     private let label: UILabel = {
         let label = UILabel(frame: .zero)
         label.textColor = .black
@@ -33,7 +36,6 @@ class SlideView: UIView {
         
         initSlideValue(slideNum: slideNum, color: color, calculator: calculator)
     
-        
 //        let pathLayer = PathLayer(slideView: self)
 //        pathLayer.contentsScale = UIScreen.main.scale
 //        pathLayer.drawsAsynchronously = true
@@ -86,24 +88,22 @@ class SlideView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func setConstraint(_ parentView: UIView) {
+    func setConstraint(_ parentView: UIView, index: Int) {
         translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: calculator.slideWidth),
-            heightAnchor.constraint(equalTo: parentView.heightAnchor)
-        ])
-    }
-    
-    func render() {
-//        self.pathLayer?.removeFromSuperlayer()
+        if (widthConstraint != nil) {
+            NSLayoutConstraint.deactivate([
+                widthConstraint,
+                heightConstraint
+            ])
+        }
+        
+        widthConstraint = widthAnchor.constraint(equalToConstant: calculator.slideWidth)
+        heightConstraint = heightAnchor.constraint(equalTo: parentView.heightAnchor)
 
-//        let pathLayer = PathLayer(slideView: self)
-//        pathLayer.contentsScale = UIScreen.main.scale
-//        pathLayer.drawsAsynchronously = true
-//        pathLayer.setNeedsDisplay()
-//
-//        self.layer.addSublayer(pathLayer)
-//        self.pathLayer = pathLayer
+        NSLayoutConstraint.activate([
+            widthConstraint,
+            heightConstraint
+        ])
     }
     
     override func draw(_ rect: CGRect) {

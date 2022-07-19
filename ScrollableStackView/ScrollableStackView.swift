@@ -31,7 +31,7 @@ class ScrollableStackView: UIScrollView, UIScrollViewDelegate {
         view.axis = .horizontal
         view.alignment = .fill
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.distribution = .fillEqually
+        view.distribution = .fill
         view.backgroundColor = .green
         return view
     }()
@@ -66,9 +66,9 @@ class ScrollableStackView: UIScrollView, UIScrollViewDelegate {
         let colors: [UIColor] = [.yellow, .green, .cyan]
         
         colors.enumerated().forEach { (index, color) in
-            let subView = SlideView(slideNum: index, color: color, calculator: calculator)
-            stackView.addArrangedSubview(subView)
-            subView.setConstraint(self)
+            let slideView = SlideView(slideNum: index, color: color, calculator: calculator)
+            stackView.addArrangedSubview(slideView)
+            slideView.setConstraint(self, index: index)
         }
     }
     
@@ -99,22 +99,22 @@ extension ScrollableStackView {
         let isMoveToRight = scrollX > slideWidth * 2 && slideViews.last?.slideNum != calculator.totalStackNum - 1
         
         if isMoveToLeft {
-            moveLeftSlideToRight(scrollView)
-        } else if isMoveToRight {
             moveRightSlideToLeft(scrollView)
+        } else if isMoveToRight {
+            moveLeftSlideToRight(scrollView)
         }
     }
     
-    private func moveLeftSlideToRight(_ scrollView: UIScrollView) {
+    private func moveRightSlideToLeft(_ scrollView: UIScrollView) {
         slideViews.last?.initSlideNum(slideNum: (slideViews.last?.slideNum ?? 0) - stackSlideNum)
-        changeStackPosition(from: slideViews.endIndex - 1, to: 0)
-        scrollView.contentOffset = CGPoint(x: max(scrollView.contentOffset.x + slideViews[0].frame.width, 0), y: 0)
+        changeStackPosition(from: stackSlideNum - 1, to: 0)
+        scrollView.contentOffset = CGPoint(x: max(scrollView.contentOffset.x + calculator.slideWidth, 0), y: 0)
     }
     
-    private func moveRightSlideToLeft(_ scrollView: UIScrollView) {
+    private func moveLeftSlideToRight(_ scrollView: UIScrollView) {
         slideViews.first?.initSlideNum(slideNum: (slideViews.first?.slideNum ?? 0) + stackSlideNum)
-        changeStackPosition(from: 0, to: slideViews.endIndex - 1)
-        scrollView.contentOffset = CGPoint(x: scrollView.contentOffset.x - slideViews[0].frame.width, y: 0)
+        changeStackPosition(from: 0, to: stackSlideNum - 1)
+        scrollView.contentOffset = CGPoint(x: scrollView.contentOffset.x - calculator.slideWidth, y: 0)
     }
     
     private func changeStackPosition(from: Int, to: Int) {
@@ -123,7 +123,6 @@ extension ScrollableStackView {
         stackView.insertArrangedSubview(curSlideView, at: to)
         stackView.setNeedsLayout()
         curSlideView.setNeedsDisplay()
-//        curSlideView.render()
     }
 }
 
@@ -144,11 +143,8 @@ extension ScrollableStackView {
             let isZoomOut = CGFloat(calculator.lineGapSize) - newLineGap > 0.05
             let isZoomIn = newLineGap - CGFloat(calculator.lineGapSize) > 0.05
             
-            
             if ((isZoomIn && calculator.lineGapSize <= calculator.maxLineGapSize) || (isZoomOut && calculator.lineGapSize > calculator.minLineGapSize)) {
-                calculator.lineGapSize = Float(newLineGap)
-                calculator.lineGapSize = max(calculator.minLineGapSize, calculator.lineGapSize)
-                calculator.lineGapSize = min(calculator.maxLineGapSize, calculator.lineGapSize)
+                calculator.setNewLineGapSize(newLineGap)
                 calculator.calculateForRedraw()
                 
                 slideViews.forEach { curSlideView in
@@ -170,8 +166,8 @@ extension ScrollableStackView {
     
     private func setOffsetXOfScroll() {
         var offsetXOfScroll = calculator.findXByIndex(index: targetIndex) - Float(slideViews[0].startX) - prevXOfTargetIndex
-        offsetXOfScroll = max(offsetXOfScroll, 0.0)
         offsetXOfScroll = min(offsetXOfScroll, Float(calculator.drawWidth - bounds.width - slideViews[0].startX))
+        offsetXOfScroll = max(offsetXOfScroll, 0.0)
         self.contentOffset = CGPoint(x: Double(offsetXOfScroll), y: 0.0)
     }
     
@@ -188,9 +184,9 @@ extension ScrollableStackView {
                 slideNum -= 1
             }
             
-            let subView = slideViews[index]
-            subView.initSlideValue(slideNum: slideNum, color: color, calculator: calculator)
-            subView.setConstraint(self)
+            let slideView = slideViews[index]
+            slideView.initSlideValue(slideNum: slideNum, color: color, calculator: calculator)
+            slideView.setConstraint(self, index: index)
         }
     }
     
