@@ -9,72 +9,48 @@ import Foundation
 import UIKit
 
 class SlideView: UIView {
+    // 전체 슬라이드에서 몇 번째 슬라이드
     var slideNum: Int = 0
+    // DrawWidth에서 Slide의 첫 x좌표
     var startX: CGFloat = 0.0
+    // DrawWidth에서 Slide의 마지막 x좌표
     var endX: CGFloat = 0.0
+    //
     var firstIndex: Int = 0
     var finalIndex: Int = 0
     private var bezierPath: UIBezierPath? = nil
     
-//    private var pathLayer: PathLayer?
+    var graph: ScrollableStackView!
     
-    var calculator: LayoutCalculator!
+    private var calculator: LayoutCalculator {
+        return graph.calculator
+    }
+    
+    private var config: GraphConfig {
+        return graph.config
+    }
     
     private var widthConstraint: NSLayoutConstraint!
     private var heightConstraint: NSLayoutConstraint!
     
-    private let label: UILabel = {
-        let label = UILabel(frame: .zero)
-        label.textColor = .black
-        label.textAlignment = .center
-        label.font = label.font.withSize(48)
-        return label
-    }()
-    
-    init(slideNum: Int, color: UIColor, calculator: LayoutCalculator) {
+    init(slideNum: Int, graph: ScrollableStackView) {
         super.init(frame: .zero)
         
-        initSlideValue(slideNum: slideNum, color: color, calculator: calculator)
-    
-//        let pathLayer = PathLayer(slideView: self)
-//        pathLayer.contentsScale = UIScreen.main.scale
-//        pathLayer.drawsAsynchronously = true
-//        pathLayer.setNeedsDisplay()
-        
-//        self.layer.addSublayer(pathLayer)
-//        self.pathLayer = pathLayer
-    }
-    
-    
-    override func layoutSublayers(of layer: CALayer) {
-//        self.pathLayer?.frame = self.bounds
-    }
-    
-    func initSlideValue(slideNum: Int, color: UIColor, calculator: LayoutCalculator) {
-        self.backgroundColor = color
-        self.calculator = calculator
-        
+        self.graph = graph
         initSlideNum(slideNum: slideNum)
+    }
+    
+    func reinitByPinch(slideNum: Int) {
+        initSlideNum(slideNum: slideNum)
+        setConstraint()
     }
     
     func initSlideNum(slideNum: Int) {
         self.slideNum = slideNum
+        
         startX = CGFloat(slideNum) * calculator.slideWidth
         endX = CGFloat((slideNum + 1)) * calculator.slideWidth
-        
         setFisrtAndFinalIndex()
-        label.text = String(slideNum)
-    }
-    
-    private func setNumLabel() {
-        addSubview(label)
-        NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: self.leadingAnchor),
-            label.trailingAnchor.constraint(equalTo: self.trailingAnchor),
-            label.topAnchor.constraint(equalTo: self.topAnchor),
-            label.bottomAnchor.constraint(equalTo: self.bottomAnchor)
-        ])
-        label.text = String(slideNum)
     }
     
     private func setFisrtAndFinalIndex() {
@@ -88,9 +64,9 @@ class SlideView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func setConstraint(_ parentView: UIView, index: Int) {
+    func setConstraint() {
         translatesAutoresizingMaskIntoConstraints = false
-        if (widthConstraint != nil) {
+        if (widthConstraint != nil || heightConstraint != nil) {
             NSLayoutConstraint.deactivate([
                 widthConstraint,
                 heightConstraint
@@ -98,7 +74,7 @@ class SlideView: UIView {
         }
         
         widthConstraint = widthAnchor.constraint(equalToConstant: calculator.slideWidth)
-        heightConstraint = heightAnchor.constraint(equalTo: parentView.heightAnchor)
+        heightConstraint = heightAnchor.constraint(equalTo: graph.heightAnchor)
 
         NSLayoutConstraint.activate([
             widthConstraint,
@@ -113,7 +89,7 @@ class SlideView: UIView {
     }
     
     private func drawDataPath(using ctx: CGContext) {
-        calculator?.graphPointsList.enumerated().forEach { i, graphPoints in
+        calculator.graphPointsList.enumerated().forEach { i, graphPoints in
             let currentColor: UIColor = .blue
             let blurSize = 12.0
             ctx.setShadow(offset: CGSize(width: 0.0, height: blurSize - 2.0),
@@ -123,6 +99,7 @@ class SlideView: UIView {
             if (graphPoints.count > 1) {
                 let filteredGraphPoints = Array(graphPoints[firstIndex...finalIndex])
                 
+                // Index 확인을 위한 코드, 이후에 지워야 함.
                 filteredGraphPoints.enumerated().forEach { (index, graphpoint) in
                     if (firstIndex + index) % 10 == 0 {
                         drawText(text: "\(firstIndex + index)", graphPoint: graphpoint)
@@ -149,4 +126,3 @@ class SlideView: UIView {
         string.draw(at: CGPoint(x: Int(graphPoint.x - Float(startX) - Float(string.length) / 2.0), y: Int(graphPoint.y)))
     }
 }
-

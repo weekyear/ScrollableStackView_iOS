@@ -9,13 +9,34 @@ import Foundation
 import UIKit
 
 class LayoutCalculator {
-    let dataNum = 30
     var drawWidth: CGFloat = 100.0
     var drawHeight: CGFloat = 100.0
-    let paddingLeft: Float = 0.0
-    let paddingRight: Float = 0.0
-    let maxLineGapSize: Float = 20.0
-    let minLineGapSize: Float = 2.0
+    
+    private var graph: ScrollableStackView!
+    
+    private var config: GraphConfig {
+        return graph.config
+    }
+    
+    private var minY: CGFloat {
+        return CGFloat(config.paddings[0])
+    }
+    
+    private var maxY: CGFloat {
+        return graph.frame.height - CGFloat(config.paddings[1])
+    }
+    
+    private var sectionMinValue: Float {
+        return Float(Int(config.dataMinValue))
+    }
+    
+    private var sectionMaxValue: Float {
+        if config.dataMaxValue.remainder(dividingBy: 0) == 0 {
+            return Float(Int(config.dataMaxValue))
+        } else {
+            return Float(Int(config.dataMaxValue) + 1)
+        }
+    }
     
     var _lineGapSize: Float = 10.0
     var lineGapSize: Float {
@@ -23,8 +44,8 @@ class LayoutCalculator {
             return _lineGapSize
         }
         set (newVal) {
-            _lineGapSize = max(2.0, newVal)
-            _lineGapSize = min(20.0, newVal)
+            _lineGapSize = max(config.minLineGapSize, newVal)
+            _lineGapSize = min(config.maxLineGapSize, newVal)
         }
     }
     
@@ -32,65 +53,79 @@ class LayoutCalculator {
     var slideWidth: CGFloat {
         get {
             if (_slideWidth == 0.0) {
-                _slideWidth = max(drawWidth, UIScreen.main.bounds.width) / CGFloat(totalStackNum)
+                _slideWidth = max(drawWidth, graph.bounds.width) / CGFloat(totalStackNum)
             }
-            return max(drawWidth, UIScreen.main.bounds.width) / CGFloat(totalStackNum)
+            return _slideWidth
         }
     }
     var totalStackNum = 3
-    private let defalutSlideNum = 3
     
     var graphPointsList: Array<Array<GraphPoint>> = []
     
-    init() {
+    init(graph: ScrollableStackView) {
+        self.graph = graph
+    }
+    
+    func calculate() {
+        initGraphPointsList()
+        calculateForDraw()
+    }
+    
+    private func calculateForDraw() {
         initDrawWidth()
         initTotalScreenNum()
-        initGraphPointsList()
     }
     
     private func initDrawWidth() {
-        drawWidth = CGFloat(paddingLeft + lineGapSize * Float((dataNum - 1)) + paddingRight)
+        drawWidth = CGFloat(config.paddings[2] + lineGapSize * Float((config.dataPointsList[0].count - 1)) + config.paddings[3])
     }
     
     private func initTotalScreenNum() {
-        let isMoreThanStackSlideNum = drawWidth > UIScreen.main.bounds.width * 2 * CGFloat(defalutSlideNum)
+        let isMoreThanStackSlideNum = drawWidth > graph.frame.width * 2 * CGFloat(graph.slideViewNum)
         
         if isMoreThanStackSlideNum {
-            totalStackNum = (Int(drawWidth) / (Int(UIScreen.main.bounds.width) * 2)) + 1
+            totalStackNum = (Int(drawWidth) / (Int(graph.frame.width) * 2)) + 1
         } else {
-            totalStackNum = defalutSlideNum
+            totalStackNum = graph.slideViewNum
         }
     }
     
-    func calculateForRedraw() {
-        initDrawWidth()
+    // 핀치 줌 될때 새로 draw할 때 필요한 재계산을 수행
+    func calculateForRedraw(newLineGap: CGFloat) {
+        setNewLineGapSize(newLineGap: newLineGap)
+        // slideWidth를 다시 계산하게 하기 위한 조치
+        _slideWidth = 0.0
         
-        initTotalScreenNum()
+        calculateForDraw()
         updateGraphPointsList()
     }
     
+    private func setNewLineGapSize(newLineGap: CGFloat) {
+        lineGapSize = Float(newLineGap)
+        lineGapSize = max(config.minLineGapSize, lineGapSize)
+        lineGapSize = min(config.maxLineGapSize, lineGapSize)
+    }
+    
+    // Config의 DataList를 GraphPoints로 변환
     private func initGraphPointsList() {
         graphPointsList.removeAll()
-        for _ in 0...0 {
-            var graphPoints: Array<GraphPoint> = []
-            for i in 0...(dataNum - 1) {
-                let posX = findXByIndex(index: i)
-                let posY = Double.random(in: 5.0...250.0)
-                let graphPoint = GraphPoint(x: Float(posX), y: Float(posY), color: .darkGray)
+        config.dataPointsList.forEach { dataPoints in
+            var graphPoints: [GraphPoint] = []
+            dataPoints.enumerated().forEach { (index, data) in
+                let graphPoint = GraphPoint(x: findXByIndex(index: index), y: calculateYOfData(measure: data), color: .darkGray)
                 graphPoints.append(graphPoint)
             }
             graphPointsList.append(graphPoints)
         }
     }
     
+    // Line Gap이 변경 됨에 따라 GraphPointsList를 새로 반환
     private func updateGraphPointsList() {
         var _graphPointsList: Array<Array<GraphPoint>> = []
         for graphPoints in graphPointsList {
             var _graphPoints: Array<GraphPoint> = []
             graphPoints.enumerated().forEach { (i, graphPoint) in
-                let posX = findXByIndex(index: i)
-                let posY = graphPoint.y
-                let _graphPoint = GraphPoint(x: Float(posX), y: Float(posY), color: .darkGray)
+                let _graphPoint = GraphPoint(x: findXByIndex(index: i), y: graphPoint.y, color: .darkGray)
                 _graphPoints.append(_graphPoint)
             }
             _graphPointsList.append(_graphPoints)
@@ -102,16 +137,16 @@ class LayoutCalculator {
         }
     }
     
+    private func calculateYOfData(measure: Float) -> Float {
+        return Float(minY) + Float(maxY - minY) * (measure - sectionMinValue) / (sectionMaxValue - sectionMinValue)
+    }
+    
+    // 입력된 인덱스의 x 좌표를 반환
     func findXByIndex(index: Int) -> Float {
-        return paddingLeft + lineGapSize * Float(index)
+        return config.paddings[2] + lineGapSize * Float(index)
     }
     
-    func setNewLineGapSize(_ newLineGap: CGFloat) {
-        lineGapSize = Float(newLineGap)
-        lineGapSize = max(minLineGapSize, lineGapSize)
-        lineGapSize = min(maxLineGapSize, lineGapSize)
-    }
-    
+    // 클릭한 x 좌표에 가까운 인덱스를 반환
     func findIndexByX(clickX: Float) -> Int {
         if (graphPointsList.isEmpty) {
             return 0
