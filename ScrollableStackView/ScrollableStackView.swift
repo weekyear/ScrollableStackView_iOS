@@ -101,16 +101,19 @@ class ScrollableStackView: UIScrollView, UIScrollViewDelegate {
 // MARK: 스크롤 (feat. UIScrollViewDelegate)
 extension ScrollableStackView {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        // 핀치 줌 진행될 때는 scrollViewDidScroll의 호출을 방지
         if (isPinchZoom) { return }
         
-        scroll(scrollView)
+        controlSlideViews(scrollView)
     }
     
-    private func scroll(_ scrollView: UIScrollView) {
+    private func controlSlideViews(_ scrollView: UIScrollView) {
         let scrollX = scrollView.contentOffset.x
         
+        // SlideView를 왼쪽으로 옮겨야하는지 여부
         let isMoveToLeft = scrollX < calculator.slideWidth - scrollView.frame.width && slideViews[0].slideNum != 0
-        let isMoveToRight = scrollX > calculator.slideWidth * 2 && slideViews.last?.slideNum != calculator.totalStackNum - 1
+        // SlideView를 오른쪽으로 옮겨야하는지 여부
+        let isMoveToRight = scrollX > calculator.slideWidth * 2 && slideViews.last?.slideNum != calculator.totalSlideNum - 1
         
         if isMoveToLeft {
             moveRightSlideToLeft(scrollView)
@@ -119,19 +122,22 @@ extension ScrollableStackView {
         }
     }
     
+    // 오른쪽 슬라이드를 왼쪽으로 옮김
     private func moveRightSlideToLeft(_ scrollView: UIScrollView) {
-        slideViews.last?.initSlideNum(slideNum: (slideViews.last?.slideNum ?? 0) - slideViewNum)
-        changeStackPosition(from: slideViewNum - 1, to: 0)
+        slideViews.last?.calculateSlideInfo(slideNum: (slideViews.last?.slideNum ?? 0) - slideViewNum)
+        changeSlideViewPosition(from: slideViewNum - 1, to: 0)
         scrollView.contentOffset = CGPoint(x: max(scrollView.contentOffset.x + calculator.slideWidth, 0), y: 0)
     }
     
+    // 왼쪽 슬라이드를 오른쪽으로 옮김
     private func moveLeftSlideToRight(_ scrollView: UIScrollView) {
-        slideViews.first?.initSlideNum(slideNum: (slideViews.first?.slideNum ?? 0) + slideViewNum)
-        changeStackPosition(from: 0, to: slideViewNum - 1)
+        slideViews.first?.calculateSlideInfo(slideNum: (slideViews.first?.slideNum ?? 0) + slideViewNum)
+        changeSlideViewPosition(from: 0, to: slideViewNum - 1)
         scrollView.contentOffset = CGPoint(x: scrollView.contentOffset.x - calculator.slideWidth, y: 0)
     }
     
-    private func changeStackPosition(from: Int, to: Int) {
+    // SlideView의 위치를 from에서부터 to로 옮김
+    private func changeSlideViewPosition(from: Int, to: Int) {
         let curSlideView = slideViews[from]
         stackView.removeArrangedSubview(curSlideView)
         stackView.insertArrangedSubview(curSlideView, at: to)
@@ -151,27 +157,28 @@ extension ScrollableStackView {
             isPinchZoom = true
             break
         case .changed:
-            let newLineGap = lineGapBegan * sender.scale
+            let newLineGapSize = lineGapBegan * sender.scale
             let pinchSensitivity = 0.05
             
-            let isZoomOut = CGFloat(calculator.lineGapSize) - newLineGap > pinchSensitivity
-            let isZoomIn = newLineGap - CGFloat(calculator.lineGapSize) > pinchSensitivity
+            let isZoomOut = CGFloat(calculator.lineGapSize) - newLineGapSize > pinchSensitivity
+            let isZoomIn = newLineGapSize - CGFloat(calculator.lineGapSize) > pinchSensitivity
             
             let isNotMaxLineGapSize = calculator.lineGapSize <= config.maxLineGapSize
             let isNotMinLineGapSize = calculator.lineGapSize > config.minLineGapSize
             
             if ((isZoomIn && isNotMaxLineGapSize) || (isZoomOut && isNotMinLineGapSize)) {
-                calculator.calculateForRedraw(newLineGap: newLineGap)
+                // 핀치줌
+                calculator.calculateForRedraw(newLineGap: newLineGapSize)
                 
                 slideViews.forEach { curSlideView in
-                    reinitArrangedSubView(xOfTargetIndex: CGFloat(calculator.findXByIndex(index: targetIndex)))
+                    calculateSlideInfo(xOfTargetIndex: CGFloat(calculator.findXByIndex(index: targetIndex)))
                 }
                 setOffsetXWhenPinchingZoom()
             }
             break
         case .ended:
             // Pinch Zoom이 끝났을 때 SlideView의 위치를 조정하고 Offset X를 다시 잡는다.
-            scroll(self)
+            controlSlideViews(self)
             setOffsetXWhenPinchingZoom()
             isPinchZoom = false
             break
@@ -180,7 +187,7 @@ extension ScrollableStackView {
         }
     }
     
-    // Pinch Zoom할 때 x Offset 조정
+    // Pinch Zoom하고나서 어긋난 x Offset을 조정
     private func setOffsetXWhenPinchingZoom() {
         var offsetX = calculator.findXByIndex(index: targetIndex) - Float(slideViews[0].startX) - prevXOfTargetIndex
         offsetX = min(offsetX, Float(calculator.drawWidth - bounds.width - slideViews[0].startX))
@@ -188,20 +195,20 @@ extension ScrollableStackView {
         self.contentOffset = CGPoint(x: Double(offsetX), y: 0.0)
     }
     
-    private func reinitArrangedSubView(xOfTargetIndex: CGFloat) {
+    private func calculateSlideInfo(xOfTargetIndex: CGFloat) {
         let targetSlideIndex = Int(xOfTargetIndex / calculator.slideWidth)
         
         for index in 0..<slideViewNum {
             var slideNum = targetSlideIndex + index
             
-            if (targetSlideIndex == calculator.totalStackNum - 1) {
+            if (targetSlideIndex == calculator.totalSlideNum - 1) {
                 slideNum -= 2
             } else if (targetSlideIndex != 0) {
                 slideNum -= 1
             }
             
             let slideView = slideViews[index]
-            slideView.reinitByPinch(slideNum: slideNum)
+            slideView.calculateByPinch(slideNum: slideNum)
             slideView.setNeedsDisplay()
             
             // SlideView가 옮겨지고 있는지 확인하기 위한 색상들로 실제 그래프에 활용할 때는 지우면 된다.
@@ -209,6 +216,7 @@ extension ScrollableStackView {
         }
     }
     
+    // 그래프를 탭 했을 때 수행할 동작을 구현하는 함수
     @objc func handleTapGesture(_ sender: UIPinchGestureRecognizer) {
         print("tap")
     }

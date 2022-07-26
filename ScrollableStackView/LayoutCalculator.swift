@@ -18,11 +18,11 @@ class LayoutCalculator {
         return graph.config
     }
     
-    private var minY: CGFloat {
+    private var sectionMinY: CGFloat {
         return CGFloat(config.paddings[0])
     }
     
-    private var maxY: CGFloat {
+    private var sectionMaxY: CGFloat {
         return graph.frame.height - CGFloat(config.paddings[1])
     }
     
@@ -53,12 +53,12 @@ class LayoutCalculator {
     var slideWidth: CGFloat {
         get {
             if (_slideWidth == 0.0) {
-                _slideWidth = max(drawWidth, graph.bounds.width) / CGFloat(totalStackNum)
+                _slideWidth = max(drawWidth, graph.bounds.width) / CGFloat(totalSlideNum)
             }
             return _slideWidth
         }
     }
-    var totalStackNum = 3
+    var totalSlideNum = 3
     
     var graphPointsList: Array<Array<GraphPoint>> = []
     
@@ -84,9 +84,9 @@ class LayoutCalculator {
         let isMoreThanStackSlideNum = drawWidth > graph.frame.width * 2 * CGFloat(graph.slideViewNum)
         
         if isMoreThanStackSlideNum {
-            totalStackNum = (Int(drawWidth) / (Int(graph.frame.width) * 2)) + 1
+            totalSlideNum = (Int(drawWidth) / (Int(graph.frame.width) * 2)) + 1
         } else {
-            totalStackNum = graph.slideViewNum
+            totalSlideNum = graph.slideViewNum
         }
     }
     
@@ -138,7 +138,7 @@ class LayoutCalculator {
     }
     
     private func calculateYOfData(measure: Float) -> Float {
-        return Float(minY) + Float(maxY - minY) * (measure - sectionMinValue) / (sectionMaxValue - sectionMinValue)
+        return Float(sectionMinY) + Float(sectionMaxY - sectionMinY) * (measure - sectionMinValue) / (sectionMaxValue - sectionMinValue)
     }
     
     // 입력된 인덱스의 x 좌표를 반환

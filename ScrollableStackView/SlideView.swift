@@ -37,15 +37,15 @@ class SlideView: UIView {
         super.init(frame: .zero)
         
         self.graph = graph
-        initSlideNum(slideNum: slideNum)
+        calculateSlideInfo(slideNum: slideNum)
     }
     
-    func reinitByPinch(slideNum: Int) {
-        initSlideNum(slideNum: slideNum)
+    func calculateByPinch(slideNum: Int) {
+        calculateSlideInfo(slideNum: slideNum)
         setConstraint()
     }
     
-    func initSlideNum(slideNum: Int) {
+    func calculateSlideInfo(slideNum: Int) {
         self.slideNum = slideNum
         
         startX = CGFloat(slideNum) * calculator.slideWidth
