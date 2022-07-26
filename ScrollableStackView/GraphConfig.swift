@@ -20,9 +20,11 @@ open class GraphConfig {
     // paddings : [상, 하, 좌, 우] 패딩 값
     public var paddings: Array<Float> = [10.0, 20.0, 30.0, 400.0]
     
+    // 핀치 줌 될 때, 최대 lineGapSize와 최소 lineGapSize
     let maxLineGapSize: Float = 20.0
     let minLineGapSize: Float = 5.0
     
+    // dataPoint 중 최댓값과 최솟값
     var dataMinValue: Float = 0
     var dataMaxValue: Float = 100
     
